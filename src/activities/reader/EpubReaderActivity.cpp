@@ -1086,6 +1086,7 @@ bool EpubReaderActivity::pageTurn(bool isForwardTurn) {
     } else if (currentSpineIndex > 0) {
       RenderLock lock;
       nextPageNumber = 0;
+      pendingPercentJump = false;
       pendingLastPageJump = true;
       currentSpineIndex--;
       section.reset();
