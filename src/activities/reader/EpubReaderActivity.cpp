@@ -1132,7 +1132,6 @@ void EpubReaderActivity::onReturnFromEndOfBook() {
     section.reset();
   }
 }
-}
 
 bool EpubReaderActivity::skipLoopDelay() {
   return section && section->isBuilding() && !buildHeapPaused &&
