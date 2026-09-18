@@ -1124,10 +1124,14 @@ bool EpubReaderActivity::isAtEndOfBook() const { return epub && currentSpineInde
 
 void EpubReaderActivity::onReturnFromEndOfBook() {
   if (epub && epub->getSpineItemsCount() > 0) {
+    RenderLock lock;
     currentSpineIndex = epub->getSpineItemsCount() - 1;
     nextPageNumber = 0;
+    pendingPercentJump = false;
     pendingLastPageJump = true;
+    section.reset();
   }
+}
 }
 
 bool EpubReaderActivity::skipLoopDelay() {
@@ -1196,12 +1200,11 @@ void EpubReaderActivity::renderBook() {
     }
     const bool cacheComplete = cacheLoaded && !section->isPartial();
     const bool explicitOffsetJump = pendingOffsetJump.has_value();
-    const std::optional<uint32_t> offsetJump =
-        explicitOffsetJump ? pendingOffsetJump
-        : (pendingPageJump.has_value() || pendingLastPageJump || !pendingAnchor.empty() ||
-           currentSpineIndex != cachedSpineIndex)
-            ? std::nullopt
-            : cachedVisibleTextOffset;
+    const std::optional<uint32_t> offsetJump = explicitOffsetJump ? pendingOffsetJump
+                                               : (pendingPageJump.has_value() || pendingLastPageJump ||
+                                                  !pendingAnchor.empty() || currentSpineIndex != cachedSpineIndex)
+                                                   ? std::nullopt
+                                                   : cachedVisibleTextOffset;
     if (!cacheComplete) {
       if (section->isPartial()) {
         LOG_DBG("ERS", "Partial cache found (%d pages), resuming build...", section->pageCount);
