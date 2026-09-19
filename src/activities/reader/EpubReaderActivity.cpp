@@ -393,6 +393,7 @@ void EpubReaderActivity::loop() {
       if (!section->buildSomeMore(BACKGROUND_BUILD_PAGES_PER_TICK)) {
         LOG_ERR("ERS", "Background section build failed");
         section.reset();
+        pendingBuildError = true;
         requestUpdate();
       } else if (section->isBuildComplete()) {
         bool repositioned = false;
@@ -1155,6 +1156,12 @@ void EpubReaderActivity::renderBook() {
     automaticPageTurnActive = false;
   };
 
+  if (pendingBuildError) {
+    pendingBuildError = false;
+    showBuildError();
+    return;
+  }
+
   if (currentSpineIndex < 0) currentSpineIndex = 0;
   if (currentSpineIndex > epub->getSpineItemsCount()) currentSpineIndex = epub->getSpineItemsCount();
 
@@ -1234,7 +1241,7 @@ void EpubReaderActivity::renderBook() {
         const int target = pendingPageJump.has_value() ? *pendingPageJump : (nextPageNumber < 0 ? 0 : nextPageNumber);
         const bool anchorJump = !pendingAnchor.empty();
 
-        if (section->isPartial() &&
+        if (section->isPartial() && !pendingPercentJump && !pendingLastPageJump &&
             (anchorJump ? section->getPageForAnchor(pendingAnchor).has_value()
                         : target + PARTIAL_REBUILD_START_MARGIN < static_cast<int>(section->pageCount))) {
           LOG_DBG("ERS", "Partial covers target %d of %d; deferring extension build", target, section->pageCount);
