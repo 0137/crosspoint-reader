@@ -1135,7 +1135,8 @@ void EpubReaderActivity::onReturnFromEndOfBook() {
 
 bool EpubReaderActivity::skipLoopDelay() {
   return section && section->isBuilding() && !buildHeapPaused &&
-         (section->isPartial() || static_cast<int>(section->pageCount) < section->currentPage + BUILD_WINDOW_AHEAD);
+         (pendingPercentJump || pendingLastPageJump || section->isPartial() ||
+          static_cast<int>(section->pageCount) < section->currentPage + BUILD_WINDOW_AHEAD);
 }
 
 void EpubReaderActivity::renderBook() {
