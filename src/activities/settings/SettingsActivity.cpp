@@ -33,12 +33,12 @@
 #include "StatusBarSettingsActivity.h"
 #include "TextSettingsActivity.h"
 #include "activities/network/WifiSelectionActivity.h"
-#include "activities/plugins/PluginCatalogActivity.h"
 #include "activities/util/IntervalSelectionActivity.h"
 #include "components/UITheme.h"
 #include "components/UIThemeTokens.h"
 #include "components/UiAppHelpers.h"
 #include "fontIds.h"
+#include "util/PluginEvents.h"
 
 namespace fui = freeink::ui;
 
@@ -109,8 +109,8 @@ void SettingsActivity::rebuildSettingsLists() {
   // asset isn't published yet just report no update available.
   systemSettings.push_back(SettingInfo::Action(StrId::STR_CHECK_UPDATES, SettingAction::CheckForUpdates));
   systemSettings.push_back(SettingInfo::Action(StrId::STR_SD_FIRMWARE_UPDATE, SettingAction::SdFirmwareUpdate));
-  systemSettings.push_back(SettingInfo::Action(StrId::STR_PLUGINS, SettingAction::Plugins));
   systemSettings.push_back(SettingInfo::Action(StrId::STR_KEYBOARD_LAYOUTS, SettingAction::KeyboardLayouts));
+  systemSettings.push_back(SettingInfo::Action(StrId::STR_PLUGINS, SettingAction::Plugins));
   systemSettings.push_back(SettingInfo::Action(StrId::STR_ABOUT, SettingAction::About));
   systemSettings.push_back(SettingInfo::Action(StrId::STR_LANGUAGE, SettingAction::Language));
   readerSettings.insert(readerSettings.begin(),
@@ -430,9 +430,21 @@ void SettingsActivity::toggleCurrentSetting() {
                                  rebuildSettingsLists();
                                });
         break;
-      case SettingAction::Plugins:
-        startActivityForResult(std::make_unique<PluginCatalogActivity>(renderer, mappedInput), resultHandler);
-        break;
+      case SettingAction::Plugins: {
+        static constexpr StrId OPTIONS[] = {StrId::STR_ENABLED, StrId::STR_DISABLED, StrId::STR_CANCEL};
+        optionPopup.show(StrId::STR_PLUGINS, OPTIONS, 3, SETTINGS.pluginsEnabled ? 0 : 1, [this](const int idx) {
+          if (idx == 2) return;
+          SETTINGS.pluginsEnabled = idx == 0 ? 1 : 0;
+          // Turning plugins on brings back a dismissed Plugin Hub install row.
+          if (SETTINGS.pluginsEnabled) SETTINGS.pluginHubPromptHidden = 0;
+          SETTINGS.saveToFile();
+          // Applies to event delivery now, not after a reboot.
+          pluginevents::refreshSubscriptions();
+          rebuildSettingsLists();
+        });
+        requestUpdate();
+        return;
+      }
       case SettingAction::KeyboardLayouts:
         if (auto activity = makeUniqueNoThrow<KeyboardLayoutsActivity>(renderer, mappedInput)) {
           startActivityForResult(std::move(activity), nullptr);
@@ -503,6 +515,7 @@ void SettingsActivity::openSleepTimeoutPicker() {
 
 std::string SettingsActivity::settingValueText(const SettingInfo& setting) {
   if (setting.action == SettingAction::HomeButton) return tr(STR_CONFIGURE);
+  if (setting.action == SettingAction::Plugins) return SETTINGS.pluginsEnabled ? tr(STR_ENABLED) : tr(STR_DISABLED);
   if (setting.type == SettingType::ENUM && setting.valuePtr != nullptr) {
     // Guard like the valueGetter branch below: a corrupt/migrated settings
     // byte must not index past the enum table.
