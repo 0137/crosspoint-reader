@@ -73,7 +73,7 @@ The **Hide** preference persists across reboots. Setting **Settings → Connecti
 Plugins** to **Enabled** clears it, which brings the installer entry back.
 
 For users who prefer manual installation, Plugin Hub can be downloaded directly
-from <https://github.com/jadehawk/PluginHub.crosspoint-plugin/releases>. Copy or
+from <https://github.com/crosspoint-reader/crosspoint-plugin-hub/releases>. Copy or
 extract the `pluginhub` folder so it ends up at one of these supported locations:
 `/.crosspoint/plugins/pluginhub/`, `/plugins/pluginhub/`, or
 `/.plugins/pluginhub/`.
